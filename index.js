@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const schedule = require('node-schedule');
 const config = require("./config.json");
 
@@ -6,25 +6,26 @@ async function doScreenies(page, list) {
     for (let i = 0; i < list.length; i++) {
         if (list[i] === "world") {
             await page.goto("https://www.worldometers.info/coronavirus/");
-            await page.screenshot({ path: "./screenies/world1.png", clip: { x: 400, y: 200, width: 700, height: 700 } });
+            await page.screenshot({ path:  config.screenshotDir+ "/world1.png", clip: { x: 400, y: 200, width: 700, height: 700 } });
             await page.evaluate(_ => {
                 window.scrollBy(0, 800);
             });
-            await page.screenshot({ path: "./screenies/world2.png", clip: { x: 400, y: 800, width: 810, height: 800 } });
+            await page.screenshot({ path: config.screenshotDir+ "/world2.png", clip: { x: 400, y: 800, width: 800, height: 800 } });
         } else {
             await page.goto(`https://www.google.com/search?client=ubuntu&channel=fs&q=${list[i]}+coronavirus+total+cases&ie=utf-8&oe=utf-8`);
-            await page.screenshot({ path: `./screenies/${list[i]}1.png`, clip: { x: 150, y: 150, width: 750, height: 630 } })
+            await page.screenshot({ path: `${config.screenshotDir}/${list[i]}1.png`, clip: { x: 150, y: 150, width: 750, height: 630 } })
         }
     }
 }
 
 async function doUpload(page, name) {
+    console.log(config.screenshotDir +"/"+ name);
 
     const [fileChooser] = await Promise.all([
         page.waitForFileChooser(),
         page.click("div[class='_7oan _m _6a _4q60 _3rzn']"), // some button that triggers file selection
     ]);
-    await fileChooser.accept(['/home/michael/ronaupdate/screenies/' + name]);
+    await fileChooser.accept([config.screenshotDir +"/"+ name]);
 
 }
 
@@ -36,11 +37,11 @@ async function makePost(page, list) {
             await doUpload(page, `${list[i]}1.png`);
             if (list[i] === "world") await doUpload(page, `${list[i]}2.png`);
         }
-    } catch (e) {
-        console.log("File Not Found");
-        await page.goto(`https://www.messenger.com/t/${config.chatId}`);
+     } catch (e) {
+         console.log("File Not Found");
+         await page.goto(`https://www.messenger.com/t/${config.chatId}`);
 
-        await makeTextPost(page, `Failed to find screenshots for \`${list}\`, use \`corona pull\` to fetch screenshots`)
+         await makeTextPost(page, `Failed to find screenshots for \`${list}\`, use \`corona pull\` to fetch screenshots`)
     }
     // 2. submit
     await page.keyboard.down('Enter');
@@ -89,7 +90,8 @@ async function doLogin(page) {
         defaultViewport: {
             width: 1920,
             height: 900
-        }
+        },
+        executablePath:"/usr/bin/chromium-browser"
     });
 
 
